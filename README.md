@@ -1,14 +1,15 @@
 # Mittag-Leffler for Stata
  Mittag-Leffler function in Stata/Mata using Garrappa (2015) algorithm
  
-This is a direct port of Roberto Garrappa's MATLAB implementation of his inverse-Laplace-transform method. It produces a function, mlf() with identical syntax and behavior as the MATLAB original.
+This is a direct port of Roberto Garrappa's MATLAB implementation of his inverse-Laplace-transform method for computing the one-, two-, or three-parameter Mittag-Leffler function. The package provides a Mata function, mlf() with identical syntax and behavior as the MATLAB original.
  
-Sources:
+Source:
 R. Garrappa, Numerical evaluation of two and three parameter
   Mittag-Leffler functions, SIAM Journal of Numerical Analysis, 2015,
   53(3), 1350-69.
-  
-mathworks.com/matlabcentral/fileexchange/48154-the-mittag-leffler-function
+
+Documentation for the MATLAB original:
+  mathworks.com/matlabcentral/fileexchange/48154-the-mittag-leffler-function
 
 To use this file in Stata, more precisely in Mata, run MattagLeffler.mata one time as if it were a do file. This will
 create the compiled module lMattagLeffer.mlib, and make the function available. No additional documentation is
