@@ -1,5 +1,5 @@
 # Mittag-Leffler for Stata
- Mittag-Leffler function in Mata using Garrappa (2015) algorithm
+ Mittag-Leffler function in Stata/Mata using Garrappa (2015) algorithm
  
 This is a direct port of Roberto Garrappa's MATLAB implementation of his inverse-Laplace-transform method. It produces a function, mlf() with identical syntax and behavior as the MATLAB original.
  
