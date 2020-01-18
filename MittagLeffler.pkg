@@ -11,9 +11,11 @@ d
 d Documentation for the MATLAB original: 
 d mathworks.com/matlabcentral/fileexchange/48154-the-mittag-leffler-function
 d 
-d To use this file in Stata, more precisely in Mata, run MattagLeffler.mata 
-d one time as if it were a do file. This will create the compiled module 
-d lMattagLeffer.mlib, and make the function permanently available.
+d To use this file in Stata, more precisely in Mata, run MattagLeffler.mata one 
+d time as if it were a do file. If you download this mata file in Stata via the 
+d "net install" command in Stata, type "which MittagLeffler.mata" to determine 
+d where it was downloaded to. Running this file will create the compiled module 
+d lMattagLeffer.mlib, and make the Mata function mlf() permanently available.
 d 
 d No additional documentation is provided.
 d 
