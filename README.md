@@ -11,8 +11,7 @@ R. Garrappa, Numerical evaluation of two and three parameter
 Documentation for the MATLAB original:
   mathworks.com/matlabcentral/fileexchange/48154-the-mittag-leffler-function
 
-To use this file in Stata, more precisely in Mata, run MattagLeffler.mata one time as if it were a do file. This will
-create the compiled module lMattagLeffer.mlib, and make the function permanently available.
+To use this file in Stata, more precisely in Mata, run MattagLeffler.mata one time as if it were a do file. If you download this mata file in Stata via the "net install" command in Stata, type "which MittagLeffler.mata" to determine where it was downloaded to. Running this file  will create the compiled module lMattagLeffer.mlib, and make the Mata function mlf() permanently available.
 
 No additional documentation is provided.
 
