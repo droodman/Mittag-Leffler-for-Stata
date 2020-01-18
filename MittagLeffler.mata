@@ -112,7 +112,7 @@ real colvector _mlf(real colvector x, real scalar alpha) {
 	mu = log_epsilon - log_eps                   // log ratio of desired to max precision
 	w = sqrt(log_eps / (log_eps - log_epsilon))  // half-width of integration range, evidently needed to assure given precision
 	N = ceil(-w * log_epsilon / (2*pi()))        // half the number of integration points
-	h = w / N                                    // width of bars in Reimann integral
+	h = w / N                                    // width of bars in Riemann integral
 	u = rangen(-w, w, N+N+1)'                    // integration points
 	z  = C(1, u); z = mu*z:*z                    // z(u) = mu * (1+ui)^2 (mu controls how close it comes to the origin)
 	zd = (-mu) * C(u, -1)                        // dz/du
