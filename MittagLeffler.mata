@@ -105,21 +105,18 @@ numeric colvector mlf(numeric colvector z, real scalar alpha, | real scalar beta
 // Version for special case: t=1, x<0, beta=0, gamma=1, 0<alpha<1, but x can be a colvector
 // =========================================================================
 real colvector _mlf(real colvector x, real scalar alpha) {
-	real scalar tau, N, mu, h, w, log_eps, log_epsilon; real colvector u; complex colvector z, zd; complex matrix F
+	real scalar N, mu, h, w, log_eps, log_epsilon; real colvector u; complex colvector z, zd; complex matrix F
 
-	tau = 2*pi()
-
-	// Target precision
 	log_epsilon = ln(1e-15) 
 	log_eps = ln(epsilon(1))
 	mu = log_epsilon - log_eps                   // log ratio of desired to max precision
-	w = sqrt(log_eps / (log_eps - log_epsilon))  // width of integration range, evidently needed to assure given precision
-	N = ceil(-w * log_epsilon / tau)             // half the number of integration points
+	w = sqrt(log_eps / (log_eps - log_epsilon))  // half-width of integration range, evidently needed to assure given precision
+	N = ceil(-w * log_epsilon / (2*pi()))        // half the number of integration points
 	h = w / N                                    // width of bars in Reimann integral
-	u = h * (-N..N)                              // integration points
+	u = rangen(-w, w, N+N+1)'                    // integration points
 	z  = C(1, u); z = mu*z:*z                    // z(u) = mu * (1+ui)^2 (mu controls how close it comes to the origin)
 	zd = (-mu) * C(u, -1)                        // dz/du
-	F = (zd :* exp(z)) :/ (1 :- x * z:^-alpha)   // integrand: dz/du * exp(z(u)) / (1 - x * z(u))^alpha
+	F = (zd :* exp(z)) :/ (1 :- x * z:^-alpha)   // integrand: dz/du * exp(z(u)) / (1 - x * z(u))^alpha -- first line that depends on the inputs!
 	return(h / pi() * Im(quadrowsum(F)))         // integral divided by 2*pi*i
 }
 
