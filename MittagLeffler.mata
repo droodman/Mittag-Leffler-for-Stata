@@ -102,10 +102,33 @@ numeric colvector mlf(numeric colvector z, real scalar alpha, | real scalar beta
 
 
 // =========================================================================
+// Version for special case: t=1, x<0, beta=0, gamma=1, 0<alpha<1, but x can be a colvector
+// =========================================================================
+real colvector _mlf(real colvector x, real scalar alpha) {
+	real scalar tau, N, mu, h, w, log_eps, log_epsilon; real colvector u; complex colvector z, zd; complex matrix F
+
+	tau = 2*pi()
+
+	// Target precision
+	log_epsilon = ln(1e-15) 
+	log_eps = ln(epsilon(1))
+	mu = log_epsilon - log_eps                   // log ratio of desired to max precision
+	w = sqrt(log_eps / (log_eps - log_epsilon))  // width of integration range, evidently needed to assure given precision
+	N = ceil(-w * log_epsilon / tau)             // half the number of integration points
+	h = w / N                                    // width of bars in Reimann integral
+	u = h * (-N..N)                              // integration points
+	z  = C(1, u); z = mu*z:*z                    // z(u) = mu * (1+ui)^2 (mu controls how close it comes to the origin)
+	zd = (-mu) * C(u, -1)                        // dz/du
+	F = (zd :* exp(z)) :/ (1 :- x * z:^-alpha)   // integrand: dz/du * exp(z(u)) / (1 - x * z(u))^alpha
+	return(h / pi() * Im(quadrowsum(F)))         // integral divided by 2*pi*i
+}
+
+
+// =========================================================================
 // Evaluation of the ML function by Laplace transform inversion
 // =========================================================================
 numeric scalar LTInversion(real scalar t, numeric scalar lambda, real scalar alpha, real scalar beta, real scalar gamma, real scalar log_epsilon) {
-	real scalar theta, kmin, kmax, tau, j1, J1, i, N, iN, mu, h, _log_epsilon
+	real scalar theta, kmin, kmax, tau, j1, J1, i, N, iN, mu, h, _log_epsilon, ln10
 	numeric colvector s_star, z, zd, zexp, F, S
 	numeric scalar Integral, Residues, ss_star
 	real colvector k_vett, phi_s_star, index_s_star, index_save, p, admissible_regions, k, u
@@ -152,7 +175,8 @@ numeric scalar LTInversion(real scalar t, numeric scalar lambda, real scalar alp
 	admissible_regions = selectindex(phi_s_star[|.\J1|] :< (log_epsilon - ln(epsilon(1))) / t :& phi_s_star[|.\J1|] :< phi_s_star[|2\.|])
 
 	// Evaluation of parameters for inversion of LT in each admissible region
-	for (; N > 200; _log_epsilon = _log_epsilon + ln(10)) {  // N starts at . as default value on creation
+	ln10 = ln(10)
+	for (; N > 200; _log_epsilon = _log_epsilon + ln10) {  // N starts at . as default value on creation
 		N = .
 		for (i=rows(admissible_regions);i;i--) {
 			j1 = admissible_regions[i]
@@ -174,7 +198,7 @@ numeric scalar LTInversion(real scalar t, numeric scalar lambda, real scalar alp
 	k = -N :: N
 	u = h*k
 	z  = C(1, u); z = mu*z:*z
-	zd = -mu * C(u, -1); zd = zd+zd
+	zd = (-2*mu) * C(u, -1)
 	zexp = exp(z*t)
 	F = z :^ (alpha * gamma - beta) :/ (z:^alpha :- lambda) :^ gamma :* zd
 	S = zexp :* F
@@ -188,31 +212,6 @@ numeric scalar LTInversion(real scalar t, numeric scalar lambda, real scalar alp
 		Residues = 0
 
 	return(isreal(lambda)? Re(Integral + Residues) : Integral + Residues)
-}
-
-
-// =========================================================================
-// Version for special case: t=1, lambda<0, beta=0, gamma=1, 0<alpha<1, but lambda can be a colvector
-// =========================================================================
-real colvector _LTInversion(real colvector lambda, real scalar alpha, real scalar log_epsilon) {
-	real scalar N, mu, h; real colvector k, u; real rowvector v; complex colvector z, zd; complex matrix F
-
-	do {  // N starts at . as default value on creation
-		v = OptimalParam_RU(1, 0, 0, log_epsilon)
-		log_epsilon = log_epsilon + ln(10)
-	} while ((N=v[3]) > 200)
-
-	mu = v[1]
-	h  = v[2]
-
-	// Evaluation of the inverse Laplace transform
-	k = -N..N
-	u = h*k
-	z  = C(1, u); z = mu*z:*z
-	zd = (-2*mu) * C(u , 1)
-	F = zd :/ (1 :- lambda :* z:^-alpha)
-
-	return(h / (2 * pi()) * Im(exp(z) :* quadrowsum(F)))
 }
 
 
@@ -312,10 +311,10 @@ real rowvector OptimalParam_RU (real scalar t, real scalar phi_s_star_j, real sc
 	while (1) {
 		phi_t = phibar_star_j*t
 		log_eps_phi_t = log_epsilon/phi_t
-		Nj = ceil(phi_t/pi()*(1 - 3*log_eps_phi_t/2 + sqrt(1-2*log_eps_phi_t)))
+		Nj = ceil(phi_t/pi()*(1 - 1.5 * log_eps_phi_t + sqrt(1-2*log_eps_phi_t)))
 		A = pi() * Nj / phi_t
-		sq_muj = sq_phibar_star_j*abs(4-A)/abs(7-sqrt(1+12*A))
-		fbar = ((sq_phibar_star_j-sq_phi_s_star_j)/sq_muj) ^ -pj
+		sq_muj = sq_phibar_star_j * abs((4-A)/(7-sqrt(1+12*A)))
+		fbar = ((sq_phibar_star_j - sq_phi_s_star_j) / sq_muj) ^ -pj
 
 		if (pj < 1e-14 | (f_min < fbar & fbar < f_max))
 			break
@@ -338,10 +337,11 @@ real rowvector OptimalParam_RU (real scalar t, real scalar phi_s_star_j, real sc
 		u = sqrt(-phibar_star_j*t/log_eps)
 		muj = threshold
 		Nj = ceil(w*log_epsilon/2/pi()/(u*w-1))
-		hj = sqrt(log_eps/(log_eps - log_epsilon)) / Nj
+		hj = w / Nj
 	}
 	return((muj, hj, Nj))
 }
+
 
 // validate against cases generated by Tran Quoc Viet, https://github.com/tranqv/Mittag-Leffler-function-and-its-derivative/blob/master/tcases/README.md
 // single argument is the path to the "tcases" directory of the Tran test files
