@@ -105,14 +105,14 @@ numeric colvector mlf(numeric colvector z, real scalar alpha, | real scalar beta
 // Evaluation of the ML function by Laplace transform inversion
 // =========================================================================
 numeric scalar LTInversion(real scalar t, numeric scalar lambda, real scalar alpha, real scalar beta, real scalar gamma, real scalar log_epsilon) {
-	real scalar theta, kmin, kmax, tau, j1, J1, i, N, iN, mu, h
+	real scalar theta, kmin, kmax, tau, j1, J1, i, N, iN, mu, h, _log_epsilon
 	numeric colvector s_star, z, zd, zexp, F, S
 	numeric scalar Integral, Residues, ss_star
-	real colvector k_vett, phi_s_star, index_s_star, index_save, p, q, admissible_regions, k, u
+	real colvector k_vett, phi_s_star, index_s_star, index_save, p, admissible_regions, k, u
 	real rowvector v
 	pragma unset N
 
-	tau = 2 * pi()
+	tau = 2 * pi(); _log_epsilon = log_epsilon
 
 	// Evaluation of the relevant poles
 	theta = isreal(lambda)? (lambda<0? pi() : 0) : arg(lambda)
@@ -131,7 +131,7 @@ numeric scalar LTInversion(real scalar t, numeric scalar lambda, real scalar alp
 
 	// Deleting possible poles with phi_s_star=0
 	index_save = phi_s_star :> 1.0e-15
-	s_star     = select(    s_star, index_save)
+	    s_star = select(    s_star, index_save)
 	phi_s_star = select(phi_s_star, index_save)
 
 	// Inserting the origin in the set of the singularities
@@ -145,21 +145,19 @@ numeric scalar LTInversion(real scalar t, numeric scalar lambda, real scalar alp
 	}
 
 	// Strength of the singularities
-	q = J(J1-1, 1, gamma)
-	p = max((0,-2*(alpha*gamma-beta+1))) \ q
-	q = q \ .
+	p = max((0,-2*(alpha*gamma-beta+1))) \ J(J1-1, 1, gamma)
 	phi_s_star = phi_s_star \ .
 
 	// Looking for the admissible regions with respect to round-off errors
-	admissible_regions = selectindex(phi_s_star[|.\J1|] :< (log_epsilon - ln(epsilon(1)))/t :& phi_s_star[|.\J1|] :< phi_s_star[|2\.|])
+	admissible_regions = selectindex(phi_s_star[|.\J1|] :< (log_epsilon - ln(epsilon(1))) / t :& phi_s_star[|.\J1|] :< phi_s_star[|2\.|])
 
 	// Evaluation of parameters for inversion of LT in each admissible region
-	for (; N > 200; log_epsilon = log_epsilon + ln(10)) {  // N starts at . as default value on creation
+	for (; N > 200; _log_epsilon = _log_epsilon + ln(10)) {  // N starts at . as default value on creation
 		N = .
-		for (i=1;i<=rows(admissible_regions);i++) {
+		for (i=rows(admissible_regions);i;i--) {
 			j1 = admissible_regions[i]
-			v = j1 < J1? OptimalParam_RB(t, phi_s_star[j1], phi_s_star[j1+1], p[j1], q[j1], log_epsilon) :
-									 OptimalParam_RU(t, phi_s_star[j1],                   p[j1],        log_epsilon)
+			v = j1 < J1? OptimalParam_RB(t, phi_s_star[j1], phi_s_star[j1+1], p[j1], gamma, _log_epsilon) :
+									 OptimalParam_RU(t, phi_s_star[j1],                   p[j1],        _log_epsilon)
 
 			// Selection of the admissible region for integration which involves the
 			// minimum number of nodes
@@ -175,14 +173,14 @@ numeric scalar LTInversion(real scalar t, numeric scalar lambda, real scalar alp
 	// Evaluation of the inverse Laplace transform
 	k = -N :: N
 	u = h*k
-	z  = 1i*u:+1; z = mu*z:*z
-	zd = mu*(1i :- u); zd = zd+zd
+	z  = C(1, u); z = mu*z:*z
+	zd = -mu * C(u, -1); zd = zd+zd
 	zexp = exp(z*t)
 	F = z :^ (alpha * gamma - beta) :/ (z:^alpha :- lambda) :^ gamma :* zd
 	S = zexp :* F
 	Integral = h / tau * quadcolsum(S) / 1i
-	// Evaluation of residues
 
+	// Evaluation of residues
 	if (iN < J1) {
 		ss_star = s_star[|iN+1\.|]
 		Residues = quadcolsum(ss_star:^(1-beta) :* exp(t * ss_star)) / alpha
@@ -190,6 +188,31 @@ numeric scalar LTInversion(real scalar t, numeric scalar lambda, real scalar alp
 		Residues = 0
 
 	return(isreal(lambda)? Re(Integral + Residues) : Integral + Residues)
+}
+
+
+// =========================================================================
+// Version for special case: t=1, lambda<0, beta=0, gamma=1, 0<alpha<1, but lambda can be a colvector
+// =========================================================================
+real colvector _LTInversion(real colvector lambda, real scalar alpha, real scalar log_epsilon) {
+	real scalar N, mu, h; real colvector k, u; real rowvector v; complex colvector z, zd; complex matrix F
+
+	do {  // N starts at . as default value on creation
+		v = OptimalParam_RU(1, 0, 0, log_epsilon)
+		log_epsilon = log_epsilon + ln(10)
+	} while ((N=v[3]) > 200)
+
+	mu = v[1]
+	h  = v[2]
+
+	// Evaluation of the inverse Laplace transform
+	k = -N..N
+	u = h*k
+	z  = C(1, u); z = mu*z:*z
+	zd = (-2*mu) * C(u , 1)
+	F = zd :/ (1 :- lambda :* z:^-alpha)
+
+	return(h / (2 * pi()) * Im(exp(z) :* quadrowsum(F)))
 }
 
 
@@ -210,7 +233,7 @@ real rowvector OptimalParam_RB (real scalar t, real scalar phi_s_star_j, real sc
 
 	// Evaluation of the starting values for sq_phi_star_j and sq_phi_star_j1
 	sq_phi_star_j = sqrt(phi_s_star_j)
-	threshold = 2*sqrt((log_epsilon - log_eps) / t)
+	threshold = 2 * sqrt((log_epsilon - log_eps) / t)
 	sq_phi_star_j1 = min((sqrt(phi_s_star_j1), threshold - sq_phi_star_j))
 
 	// Zero or negative values of pj and qj
@@ -245,7 +268,7 @@ real rowvector OptimalParam_RB (real scalar t, real scalar phi_s_star_j, real sc
 	// Positive values of both pj and qj
 	if (pj >= 1e-14 & qj >= 1e-14) {
 		f_min = fac*(sq_phi_star_j + sq_phi_star_j1) / (sq_phi_star_j1 - sq_phi_star_j) ^ max((pj,qj))
-		if (f_min < f_max) {
+		if (adm_region = f_min < f_max) {
 			f_min = max((f_min,1.5))
 			f_bar = f_min * (2 - f_min/f_max)
 			fp = f_bar ^ (-1/pj)
@@ -254,9 +277,7 @@ real rowvector OptimalParam_RB (real scalar t, real scalar phi_s_star_j, real sc
 			den = 2+w - (1+w)*fp + fq
 			sq_phibar_star_j  = ( (2+w+fq)*sq_phi_star_j +            fp *sq_phi_star_j1)/den
 			sq_phibar_star_j1 = (-(1+w)*fq*sq_phi_star_j + (2+w-(1+w)*fp)*sq_phi_star_j1)/den
-			adm_region = 1
-		} else
-			adm_region = 0
+		}
 	}
 
 	if (adm_region) {
