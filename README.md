@@ -19,5 +19,5 @@ No additional documentation is provided.
 
 The library includes a function verify_mlf(), which validates the program against Tran Quoc Viet's excellent collection
 of test values (https://github.com/tranqv/Mittag-Leffler-function-and-its-derivative/tree/master/tcases). This function
-takes a string argument, which is the path to the directory containing the test files. At least on one Intel-based Windows PC,
+takes a string argument, which is the path to the directory containing the test files. On one Intel-based Windows PC,
 all results match the target values up to a relative difference of at most 1.75e-12.
