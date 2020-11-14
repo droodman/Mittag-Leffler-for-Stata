@@ -12,7 +12,7 @@ Documentation for the MATLAB original:
   mathworks.com/matlabcentral/fileexchange/48154-the-mittag-leffler-function
 
 To use this file in Stata, more precisely in Mata, run MattagLeffler.mata one time as if it were a do file. 
-Running this file  will create the compiled module lMattagLeffer.mlib, and make the Mata function mlf() 
+This will create the compiled module lMattagLeffer.mlib, and make the Mata function mlf() 
 permanently available.
 
 No additional documentation is provided.
